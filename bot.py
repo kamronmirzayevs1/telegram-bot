@@ -1,29 +1,23 @@
 import logging
 import asyncio
-from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Bot, Dispatcher, executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from config import BOT_TOKEN
-from handlers import user_router, admin_router
+from handlers import register_user_handlers, register_admin_handlers
 from database import init_db
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
-async def main():
+bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+
+async def on_startup(dp):
     await init_db()
-    
-    bot = Bot(token=BOT_TOKEN)
-    storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
-    
-    dp.include_router(admin_router)
-    dp.include_router(user_router)
-    
-    logger.info("Bot ishga tushdi!")
-    await dp.start_polling(bot)
+    logging.info("Bot ishga tushdi!")
+
+register_admin_handlers(dp)
+register_user_handlers(dp)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
